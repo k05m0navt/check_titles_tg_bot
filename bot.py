@@ -1,3 +1,6 @@
+import os
+import json
+import gspread
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder,
@@ -5,17 +8,20 @@ from telegram.ext import (
     CallbackQueryHandler,
     ContextTypes,
 )
-import gspread
 
-# ----------------------------
-TOKEN = os.environ['TELEGRAM_BOT_TOKEN']
-SHEET_ID = os.environ['GOOGLE_SHEET_ID']
-# ----------------------------
+# ==============================
+# Получаем переменные окружения
+TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
+SHEET_ID = os.environ["GOOGLE_SHEET_ID"]
+GOOGLE_CREDENTIALS = os.environ["GOOGLE_CREDENTIALS"]
+# ==============================
 
-gc = gspread.service_account(filename="credentials.json")
+# Загружаем credentials из переменной окружения
+credentials_dict = json.loads(GOOGLE_CREDENTIALS)
+gc = gspread.service_account_from_dict(credentials_dict)
 sheet = gc.open_by_key(SHEET_ID).sheet1
 
-# ----------------------------
+# -----------------------------
 def get_data():
     return sheet.get_all_records()
 
@@ -28,9 +34,9 @@ def build_keyboard():
 
 def format_user(row):
     return f"👤 {row['name']}\n🏷 Звание: {row['title']}\n🔢 Кол-во букв: {row['letters']}"
-# ----------------------------
+# -----------------------------
 
-# ----------------------------
+# -----------------------------
 async def me(update: Update, context: ContextTypes.DEFAULT_TYPE):
     username = update.message.from_user.username
     data = get_data()
@@ -71,7 +77,6 @@ async def who(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def all_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = get_data()
-
     text = "📋 Список званий:\n\n"
     for row in data:
         text += f"{row['name']} — {row['title']} ({row['letters']})\n"
@@ -80,9 +85,9 @@ async def all_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text,
         reply_markup=build_keyboard()
     )
-# ----------------------------
+# -----------------------------
 
-# ----------------------------
+# -----------------------------
 async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -110,7 +115,7 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text,
             reply_markup=build_keyboard()
         )
-# ----------------------------
+# -----------------------------
 
 app = ApplicationBuilder().token(TOKEN).build()
 app.add_handler(CommandHandler("me", me))
