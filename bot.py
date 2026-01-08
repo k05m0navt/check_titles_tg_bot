@@ -10,7 +10,7 @@ from telegram.ext import (
 )
 
 # ==============================
-# Получаем переменные окружения
+# Переменные окружения
 TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 SHEET_ID = os.environ["GOOGLE_SHEET_ID"]
 GOOGLE_CREDENTIALS = os.environ["GOOGLE_CREDENTIALS"]
@@ -23,9 +23,11 @@ sheet = gc.open_by_key(SHEET_ID).sheet1
 
 # -----------------------------
 def get_data():
+    """Возвращает все строки из Google Sheet"""
     return sheet.get_all_records()
 
 def build_keyboard():
+    """Inline-кнопки под сообщением"""
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("👤 Моя инфа", callback_data="me")],
         [InlineKeyboardButton("📋 Все", callback_data="all")],
@@ -33,6 +35,7 @@ def build_keyboard():
     ])
 
 def format_user(row):
+    """Форматируем строку пользователя"""
     return f"👤 {row['name']}\n🏷 Звание: {row['title']}\n🔢 Кол-во букв: {row['letters']}"
 # -----------------------------
 
@@ -94,7 +97,7 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = get_data()
     username = query.from_user.username
 
-    if query.data in ["me"]:
+    if query.data == "me":
         for row in data:
             if row["tg_name"] == username:
                 await query.message.edit_text(
@@ -117,9 +120,13 @@ async def buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 # -----------------------------
 
+# ==============================
+# Основная часть: создаём приложение и запускаем
 app = ApplicationBuilder().token(TOKEN).build()
+
 app.add_handler(CommandHandler("me", me))
 app.add_handler(CommandHandler("who", who))
 app.add_handler(CommandHandler("all", all_users))
 app.add_handler(CallbackQueryHandler(buttons))
+
 app.run_polling()
