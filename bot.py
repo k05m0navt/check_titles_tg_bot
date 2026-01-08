@@ -19,7 +19,10 @@ GOOGLE_CREDENTIALS = os.environ["GOOGLE_CREDENTIALS"]
 # Загружаем credentials из переменной окружения
 credentials_dict = json.loads(GOOGLE_CREDENTIALS)
 gc = gspread.service_account_from_dict(credentials_dict)
-sheet = gc.open_by_key(SHEET_ID).sheet1
+
+# -----------------------------
+# Выбираем лист с именем "DB"
+sheet = gc.open_by_key(SHEET_ID).worksheet("DB")
 
 # -----------------------------
 def get_data():
