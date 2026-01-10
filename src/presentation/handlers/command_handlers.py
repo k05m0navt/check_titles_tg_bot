@@ -477,11 +477,12 @@ class CommandHandlers:
         welcome_text += f"• /who @username - {translate('commands.who', language)}\n"
         welcome_text += f"• /leaderboard - {translate('commands.leaderboard', language)}\n"
         welcome_text += f"• /stats [days] - {translate('commands.stats', language)}\n"
+        welcome_text += f"• /chat_id - Show current chat ID (useful for /add_user)\n"
         welcome_text += f"• /help - Show help message\n"
         
         if is_admin:
             welcome_text += f"\n🔧 {translate('commands.admin_commands', language)}:\n"
-            welcome_text += f"• /add_user @username <chat_id> - Add user manually\n"
+            welcome_text += f"• /add_user @username [chat_id] - Add user manually (chat_id optional, defaults to current chat)\n"
             welcome_text += f"• /delete_user @username - Delete user\n"
             welcome_text += f"• /set_default_title <title> - Set default title for new users\n"
             welcome_text += f"• /migrate_users_to_default_title - Migrate all users to default title\n"
@@ -601,7 +602,10 @@ class CommandHandlers:
             )
 
     async def handle_add_user(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /add_user @username <chat_id> command (admin only)."""
+        """Handle /add_user @username [chat_id] command (admin only).
+        
+        If chat_id is not provided, uses the current chat where the command was issued.
+        """
         user = update.message.from_user
         language = await get_user_language(self._user_repository, user.id)
         is_admin = self._admin_service.is_admin(user.id, user.username)
@@ -616,9 +620,13 @@ class CommandHandlers:
             )
             return
 
-        if not context.args or len(context.args) < 2:
+        if not context.args or len(context.args) < 1:
+            current_chat_id = update.effective_chat.id
             await update.message.reply_text(
-                "❌ Usage: /add_user @username <chat_id>. Chat ID is required because Telegram API cannot resolve username without chat context.",
+                f"❌ Usage: /add_user @username [chat_id]\n\n"
+                f"• @username - Required: The username to add\n"
+                f"• chat_id - Optional: Chat ID (defaults to current chat: {current_chat_id})\n\n"
+                f"💡 Tip: Use /chat_id to get the chat ID of any chat.",
                 reply_markup=InlineKeyboardBuilder.build_main_keyboard(
                     is_admin=is_admin,
                     language=language
@@ -626,18 +634,33 @@ class CommandHandlers:
             )
             return
 
-        username = context.args[0].replace("@", "")
-        try:
-            chat_id = int(context.args[1])
-        except ValueError:
+        username = context.args[0].replace("@", "").strip()
+        if not username:
             await update.message.reply_text(
-                "❌ Invalid chat_id. Must be a valid integer.",
+                "❌ Invalid username. Please provide a valid username (e.g., @username).",
                 reply_markup=InlineKeyboardBuilder.build_main_keyboard(
                     is_admin=is_admin,
                     language=language
                 )
             )
             return
+        
+        # Use provided chat_id or default to current chat
+        if len(context.args) >= 2:
+            try:
+                chat_id = int(context.args[1])
+            except ValueError:
+                await update.message.reply_text(
+                    "❌ Invalid chat_id. Must be a valid integer. Use /chat_id to get a chat's ID.",
+                    reply_markup=InlineKeyboardBuilder.build_main_keyboard(
+                        is_admin=is_admin,
+                        language=language
+                    )
+                )
+                return
+        else:
+            # Use current chat ID
+            chat_id = update.effective_chat.id
 
         try:
             was_created = await self._add_user_use_case.execute(

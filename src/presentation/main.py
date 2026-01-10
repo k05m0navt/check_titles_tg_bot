@@ -4,6 +4,7 @@ import asyncio
 import os
 import signal
 import structlog
+from telegram import BotCommand
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler as TelegramMessageHandler, CallbackQueryHandler, InlineQueryHandler as TelegramInlineQueryHandler, filters
 from telegram.error import Conflict
 
@@ -356,6 +357,23 @@ async def main():
                 await app.bot.delete_webhook(drop_pending_updates=True)
             except Exception:
                 pass  # Ignore if it fails
+        
+        # Register bot commands with Telegram API (so they appear in the menu)
+        try:
+            commands = [
+                BotCommand("start", "Start the bot"),
+                BotCommand("register", "Register yourself with the bot"),
+                BotCommand("me", "Show your stats"),
+                BotCommand("who", "Show user stats"),
+                BotCommand("leaderboard", "Show leaderboard"),
+                BotCommand("stats", "Show statistics"),
+                BotCommand("chat_id", "Show current chat ID"),
+                BotCommand("help", "Show help message"),
+            ]
+            await app.bot.set_my_commands(commands)
+            logger.info("Bot commands registered with Telegram API")
+        except Exception as e:
+            logger.warning(f"Could not register bot commands: {str(e)}")
         
         # Start polling with error handling
         try:
