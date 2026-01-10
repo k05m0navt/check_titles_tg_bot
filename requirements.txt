@@ -1,2 +1,9 @@
 python-telegram-bot==20.7
+supabase>=2.0.0,<3.0.0
+python-dotenv==1.0.0
+pytz==2024.1
+pydantic==2.5.0
+APScheduler==3.10.0
+structlog==23.1.0
 gspread
+asyncpg>=0.29.0
