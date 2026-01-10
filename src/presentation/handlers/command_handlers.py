@@ -513,6 +513,37 @@ class CommandHandlers:
             )
         )
 
+    async def handle_chat_id(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /chat_id command - displays the current chat ID."""
+        chat = update.effective_chat
+        user = update.message.from_user
+        language = await get_user_language(self._user_repository, user.id)
+        is_admin = self._admin_service.is_admin(user.id, user.username)
+        
+        chat_info = (
+            f"🆔 **Chat ID:** `{chat.id}`\n"
+            f"📋 **Chat Type:** `{chat.type}`\n"
+        )
+        
+        # Add chat title if available (for groups/channels)
+        if hasattr(chat, 'title') and chat.title:
+            chat_info += f"📝 **Chat Title:** `{chat.title}`\n"
+        
+        # Add username if available (for private chats)
+        if hasattr(chat, 'username') and chat.username:
+            chat_info += f"👤 **Username:** `@{chat.username}`\n"
+        
+        chat_info += "\n💡 Use this chat_id with the /add_user command: `/add_user @username " + str(chat.id) + "`"
+        
+        await update.message.reply_text(
+            chat_info,
+            parse_mode='Markdown',
+            reply_markup=InlineKeyboardBuilder.build_main_keyboard(
+                is_admin=is_admin,
+                language=language
+            )
+        )
+
     async def handle_register(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /register command."""
         user = update.message.from_user

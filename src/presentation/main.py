@@ -275,6 +275,7 @@ async def main():
     app.add_handler(CommandHandler("leaderboard", handlers["command_handlers"].handle_leaderboard))
     app.add_handler(CommandHandler("stats", handlers["command_handlers"].handle_stats))
     app.add_handler(CommandHandler("help", handlers["command_handlers"].handle_help))
+    app.add_handler(CommandHandler("chat_id", handlers["command_handlers"].handle_chat_id))
     app.add_handler(CommandHandler("add_user", handlers["command_handlers"].handle_add_user))
     app.add_handler(CommandHandler("set_default_title", handlers["command_handlers"].handle_set_default_title))
     app.add_handler(CommandHandler("migrate_users_to_default_title", handlers["command_handlers"].handle_migrate_users_to_default_title))
