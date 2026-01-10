@@ -249,14 +249,17 @@ async def main():
 
     # Test database connection
     try:
-        is_connected = await SupabaseClient.test_connection()
-        if not is_connected:
-            logger.error("Failed to connect to Supabase database")
-            raise ConnectionError("Database connection failed")
+        await SupabaseClient.test_connection()
         logger.info("Database connection successful")
     except Exception as e:
-        logger.error("Database connection error", error=str(e), exc_info=True)
-        raise
+        logger.error(
+            f"Database connection failed: {type(e).__name__}: {str(e)}",
+            exc_info=True
+        )
+        # Provide helpful error message based on exception type
+        if "SUPABASE_URL" in str(e) or "SUPABASE_KEY" in str(e) or not app_settings.SUPABASE_URL or not app_settings.SUPABASE_KEY:
+            logger.error("Missing Supabase environment variables. Please set SUPABASE_URL and SUPABASE_KEY")
+        raise ConnectionError(f"Database connection failed: {str(e)}") from e
 
     # Create Telegram application (app.bot is available after build())
     app = ApplicationBuilder().token(app_settings.TELEGRAM_BOT_TOKEN).build()

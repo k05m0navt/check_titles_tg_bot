@@ -39,7 +39,14 @@ class SupabaseClient:
 
     @classmethod
     async def test_connection(cls) -> bool:
-        """Test database connection."""
+        """Test database connection.
+        
+        Returns:
+            True if connection is successful
+            
+        Raises:
+            ConnectionError: If connection fails with detailed error message
+        """
         try:
             client = await cls.get_client()
             # Simple query to test connection (run in thread pool)
@@ -47,8 +54,14 @@ class SupabaseClient:
                 lambda: client.table("bot_settings").select("key").limit(1).execute()
             )
             return True
-        except Exception:
-            return False
+        except Exception as e:
+            # Re-raise with more context
+            error_msg = f"Failed to test database connection: {type(e).__name__}: {str(e)}"
+            if not settings.SUPABASE_URL:
+                error_msg += " (SUPABASE_URL environment variable is not set)"
+            elif not settings.SUPABASE_KEY:
+                error_msg += " (SUPABASE_KEY environment variable is not set)"
+            raise ConnectionError(error_msg) from e
 
 
 # Convenience function for getting client
