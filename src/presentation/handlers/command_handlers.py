@@ -83,8 +83,15 @@ class CommandHandlers:
             return
 
         # Format stats message
-        username = user.username or user.full_name or "Unknown"
-        stats_text = f"👤 @{username}\n"
+        # Get display name: username (with @) or first_name + last_name or first_name
+        if user.username:
+            display_name = f"@{user.username}"
+        elif user.last_name:
+            display_name = f"{user.first_name} {user.last_name}"
+        else:
+            display_name = user.first_name or "Unknown"
+        
+        stats_text = f"👤 {display_name}\n"
         stats_text += f"📊 {translate('stats.user_stats', language)}\n\n"
         stats_text += f"{translate('stats.title', language)}: {stats.title}\n"
         stats_text += f"{translate('stats.percentage', language)}: {stats.current_percentage}%\n" if stats.current_percentage else ""
