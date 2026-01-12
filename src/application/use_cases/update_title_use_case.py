@@ -64,13 +64,18 @@ class UpdateTitleUseCase:
             raise TitleLockedError("Title is locked and cannot be updated automatically")
 
         # Check if full_title is set (required for title calculation)
-        if not user.full_title.value or user.full_title.letter_count() == 0:
+        # Check if value exists and has at least some content (not empty string)
+        full_title_value = user.full_title.value if user.full_title else ""
+        if not full_title_value or full_title_value.strip() == "":
             # Full title not set - skip title update, log warning
             # This is expected behavior - admin must set full_title first
-            import logging
-            logger = logging.getLogger(__name__)
+            import structlog
+            logger = structlog.get_logger(__name__)
             logger.warning(
-                f"Full title not set for user {telegram_user_id}, skipping title update"
+                "Full title not set for user, skipping title update",
+                telegram_user_id=telegram_user_id,
+                full_title_from_db=full_title_value,
+                full_title_raw=str(user.full_title) if user.full_title else None
             )
             return
 

@@ -174,7 +174,7 @@ class SupabaseUserRepository(IUserRepository):
             telegram_user_id=data["telegram_user_id"],
             telegram_username=data.get("telegram_username"),
             display_name=data.get("display_name"),
-            full_title=Title(data.get("full_title", "")),
+            full_title=Title(data.get("full_title") or ""),
             title=Title(data.get("title", "")),
             title_letter_count=data.get("title_letter_count", 0),
             title_locked=data.get("title_locked", False),
