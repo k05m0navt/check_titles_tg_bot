@@ -412,6 +412,64 @@ class CommandHandlers:
                 )
             )
 
+    async def handle_set_full_title_for_all(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /set_full_title_for_all <full_title> command (admin only)."""
+        user = update.message.from_user
+        language = await get_user_language(self._user_repository, user.id)
+        is_admin = self._admin_service.is_admin(user.id, user.username)
+
+        if not context.args:
+            await update.message.reply_text(
+                f"Usage: /set_full_title_for_all <full_title>. Title can contain spaces.",
+                reply_markup=InlineKeyboardBuilder.build_main_keyboard(
+                    is_admin=is_admin,
+                    language=language
+                )
+            )
+            return
+
+        if not is_admin:
+            await update.message.reply_text(
+                translate("errors.permission_denied", language),
+                reply_markup=InlineKeyboardBuilder.build_main_keyboard(
+                    is_admin=False,
+                    language=language
+                )
+            )
+            return
+
+        full_title = " ".join(context.args)  # Join all args as title (may contain spaces)
+
+        try:
+            updated_count = await self._set_full_title_for_all_use_case.execute(
+                full_title=full_title,
+                admin_telegram_user_id=user.id,
+                admin_username=user.username,
+            )
+            await update.message.reply_text(
+                f"✅ Full title set for {updated_count} user(s): '{full_title}'",
+                reply_markup=InlineKeyboardBuilder.build_main_keyboard(
+                    is_admin=is_admin,
+                    language=language
+                )
+            )
+        except PermissionError:
+            await update.message.reply_text(
+                translate("errors.permission_denied", language),
+                reply_markup=InlineKeyboardBuilder.build_main_keyboard(
+                    is_admin=is_admin,
+                    language=language
+                )
+            )
+        except Exception as e:
+            await update.message.reply_text(
+                f"Error: {str(e)}",
+                reply_markup=InlineKeyboardBuilder.build_main_keyboard(
+                    is_admin=is_admin,
+                    language=language
+                )
+            )
+
     async def handle_set_global_average_period(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ):
