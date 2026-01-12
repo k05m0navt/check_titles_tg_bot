@@ -1,7 +1,7 @@
 """Update title use case - core business logic for title management."""
 
 from typing import Optional
-from datetime import date
+from datetime import date, datetime
 import structlog
 import pytz
 
@@ -71,10 +71,10 @@ class UpdateTitleUseCase:
         # the displayed title will just be empty, which is acceptable behavior.
 
         # Check if this is first message today (timezone-aware)
+        # Convert date to datetime at midnight, localize to user's timezone, then convert back to date
         user_timezone = pytz.timezone(str(user.timezone))
-        message_date_aware = user_timezone.localize(
-            message_date.replace(hour=0, minute=0, second=0)
-        ).date() if isinstance(message_date, date) else message_date
+        message_datetime = datetime.combine(message_date, datetime.min.time())
+        message_date_aware = user_timezone.localize(message_datetime).date()
 
         if not user.is_first_message_today(message_date_aware):
             # Not first message today, skip

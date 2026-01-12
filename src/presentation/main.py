@@ -385,24 +385,48 @@ async def main():
         except Exception as e:
             logger.warning(f"Could not register bot commands: {str(e)}")
         
-        # Start polling with error handling
-        try:
-            await app.updater.start_polling(drop_pending_updates=True)
-            logger.info("Bot polling started successfully")
-        except Conflict as e:
-            logger.error(
-                "❌ Bot conflict error - another instance is already polling for updates",
-                error=str(e)
-            )
-            logger.error(
-                "💡 Solution: Stop all other bot instances before starting this one."
-            )
-            logger.info("   To find running instances:")
-            logger.info("     ps aux | grep 'python.*bot' | grep -v grep")
-            logger.info("   Or check for all Python bot processes:")
-            logger.info("     pkill -f 'python.*bot'")
-            logger.info("     pkill -f 'src.presentation.main'")
-            raise
+        # Small delay to allow any previous instance to fully shut down
+        # This helps avoid transient conflicts during container restarts
+        await asyncio.sleep(2)
+        
+        # Start polling with error handling and retry logic
+        max_retries = 3
+        retry_delay = 5  # seconds
+        polling_started = False
+        
+        for attempt in range(1, max_retries + 1):
+            try:
+                await app.updater.start_polling(drop_pending_updates=True)
+                logger.info("Bot polling started successfully")
+                polling_started = True
+                break
+            except Conflict as e:
+                if attempt < max_retries:
+                    logger.warning(
+                        f"⚠️  Bot conflict detected (attempt {attempt}/{max_retries}). "
+                        f"Another instance may still be shutting down. Retrying in {retry_delay}s...",
+                        error=str(e)
+                    )
+                    await asyncio.sleep(retry_delay)
+                    # Double the delay for next retry (exponential backoff)
+                    retry_delay *= 2
+                else:
+                    logger.error(
+                        "❌ Bot conflict error - another instance is already polling for updates after all retries",
+                        error=str(e)
+                    )
+                    logger.error(
+                        "💡 Solution: Stop all other bot instances before starting this one."
+                    )
+                    logger.info("   To find running instances:")
+                    logger.info("     ps aux | grep 'python.*bot' | grep -v grep")
+                    logger.info("   Or check for all Python bot processes:")
+                    logger.info("     pkill -f 'python.*bot'")
+                    logger.info("     pkill -f 'src.presentation.main'")
+                    raise
+        
+        if not polling_started:
+            raise RuntimeError("Failed to start polling after all retries")
         
         # Start scheduler (after polling starts)
         handlers["scheduler"].start()
