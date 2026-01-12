@@ -41,9 +41,8 @@ class MessageHandler:
         if not message:
             return
 
-        # Check if message is from @HowGayBot
-        from_user = message.from_user
-        if not from_user or not MessageParser.should_process_message(from_user.username):
+        # Check if message is from or via @HowGayBot
+        if not MessageParser.should_process_message(message):
             return
 
         # Extract percentage
@@ -63,7 +62,8 @@ class MessageHandler:
             logger.warning(
                 "Cannot identify target user for @HowGayBot message",
                 message_text=message.text,
-                reply_to_message_id=message.reply_to_message.message_id if message.reply_to_message else None
+                reply_to_message_id=message.reply_to_message.message_id if message.reply_to_message else None,
+                via_bot=message.via_bot.username if message.via_bot else None
             )
             return
 
@@ -116,21 +116,23 @@ class MessageHandler:
         """
         Identify target user from message context.
         
-        Strategy:
+        Strategy for messages via @HowGayBot:
+        1. Primary: Use message.from_user (the actual user who sent the message via bot)
+        2. Fallback: Check if message is a reply (use reply_to_message.from_user)
+        
+        For messages directly from @HowGayBot (not via):
         1. Primary: Check if message is a reply (use reply_to_message.from_user)
-        2. Secondary: Parse username mention from message text (would need API call)
-        3. Fallback: Extract from message entities (would need API call)
-        4. If none available: return None
         
         Returns:
             Target user (from_user) or None if cannot identify
         """
-        # Primary: Check if message is a reply (most reliable method)
+        # If message is sent via @HowGayBot, the from_user is the actual user
+        if message.via_bot and message.via_bot.username == "HowGayBot":
+            if message.from_user:
+                return message.from_user
+        
+        # Otherwise, check if message is a reply (for direct messages from HowGayBot)
         if message.reply_to_message and message.reply_to_message.from_user:
             return message.reply_to_message.from_user
-
-        # Secondary/Fallback: For now, we only support reply-to method
-        # In production, we could extend this to parse mentions from text or entities
-        # but that would require API calls to resolve usernames to user objects
         
         return None

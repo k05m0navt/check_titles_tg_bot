@@ -157,7 +157,20 @@ Required environment variables:
    2. `003_initial_settings.sql` - Inserts initial bot settings (REQUIRED)
    3. `004_add_full_title_column.sql` - Adds full_title column for new title management (REQUIRED)
 
-5. Run the bot:
+5. **Configure Bot Privacy Settings (Required for Group Messages):**
+
+   For the bot to process messages from @HowGayBot in group chats, you need to disable privacy mode:
+   
+   1. Open a chat with [@BotFather](https://t.me/BotFather) on Telegram
+   2. Send `/mybots` and select your bot
+   3. Click on **"Bot Settings"**
+   4. Select **"Group Privacy"**
+   5. Choose **"Turn off"** to disable privacy mode
+   6. **Important:** Remove the bot from the group and add it back for the settings to take effect
+   
+   **Note:** Without disabling privacy mode, the bot can only see messages directed at it (commands or mentions). Messages sent "via @HowGayBot" won't be visible to the bot.
+
+6. Run the bot:
 
 **Important: Before starting, make sure no other bot instances are running!**
 

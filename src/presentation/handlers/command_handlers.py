@@ -13,6 +13,7 @@ from ...application.use_cases.calculate_statistics_use_case import CalculateStat
 from ...application.use_cases.lock_title_use_case import LockTitleUseCase
 from ...application.use_cases.unlock_title_use_case import UnlockTitleUseCase
 from ...application.use_cases.set_full_title_use_case import SetFullTitleUseCase
+from ...application.use_cases.set_full_title_for_all_use_case import SetFullTitleForAllUseCase
 from ...application.use_cases.set_global_average_period_use_case import SetGlobalAveragePeriodUseCase
 from ...application.use_cases.register_user_use_case import RegisterUserUseCase
 from ...application.use_cases.add_user_use_case import AddUserUseCase
@@ -38,6 +39,7 @@ class CommandHandlers:
         lock_title_use_case: LockTitleUseCase,
         unlock_title_use_case: UnlockTitleUseCase,
         set_full_title_use_case: SetFullTitleUseCase,
+        set_full_title_for_all_use_case: SetFullTitleForAllUseCase,
         set_global_average_period_use_case: SetGlobalAveragePeriodUseCase,
         register_user_use_case: RegisterUserUseCase,
         add_user_use_case: AddUserUseCase,
@@ -55,6 +57,7 @@ class CommandHandlers:
         self._lock_title_use_case = lock_title_use_case
         self._unlock_title_use_case = unlock_title_use_case
         self._set_full_title_use_case = set_full_title_use_case
+        self._set_full_title_for_all_use_case = set_full_title_for_all_use_case
         self._set_global_average_period_use_case = set_global_average_period_use_case
         self._register_user_use_case = register_user_use_case
         self._add_user_use_case = add_user_use_case
@@ -80,7 +83,9 @@ class CommandHandlers:
             return
 
         # Format stats message
-        stats_text = f"📊 {translate('stats.user_stats', language)}\n\n"
+        username = user.username or user.full_name or "Unknown"
+        stats_text = f"👤 @{username}\n"
+        stats_text += f"📊 {translate('stats.user_stats', language)}\n\n"
         stats_text += f"{translate('stats.title', language)}: {stats.title}\n"
         stats_text += f"{translate('stats.percentage', language)}: {stats.current_percentage}%\n" if stats.current_percentage else ""
         stats_text += f"{translate('stats.position', language)}: #{stats.position_in_leaderboard}\n" if stats.position_in_leaderboard else ""
@@ -489,6 +494,8 @@ class CommandHandlers:
             welcome_text += f"• /lock_title @username - {translate('commands.lock_title', language)}\n"
             welcome_text += f"• /unlock_title @username - {translate('commands.unlock_title', language)}\n"
             welcome_text += f"• /set_full_title @username <title> - {translate('commands.set_full_title', language)}\n"
+            welcome_text += f"• /set_title @username <title> - {translate('commands.set_full_title', language)} (alias)\n"
+            welcome_text += f"• /set_full_title_for_all <title> - Set full title for all users\n"
             welcome_text += f"• /set_global_average_period <days> - {translate('commands.set_global_average_period', language)}\n"
         
         await update.message.reply_text(

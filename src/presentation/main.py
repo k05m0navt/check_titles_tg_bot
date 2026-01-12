@@ -28,6 +28,7 @@ from src.application.use_cases.calculate_statistics_use_case import CalculateSta
 from src.application.use_cases.lock_title_use_case import LockTitleUseCase
 from src.application.use_cases.unlock_title_use_case import UnlockTitleUseCase
 from src.application.use_cases.set_full_title_use_case import SetFullTitleUseCase
+from src.application.use_cases.set_full_title_for_all_use_case import SetFullTitleForAllUseCase
 from src.application.use_cases.set_global_average_period_use_case import SetGlobalAveragePeriodUseCase
 from src.application.use_cases.register_user_use_case import RegisterUserUseCase
 from src.application.use_cases.add_user_use_case import AddUserUseCase
@@ -117,6 +118,12 @@ def setup_dependencies(bot_instance=None):
         title_calculation_service=title_calculation_service,
     )
 
+    set_full_title_for_all_use_case = SetFullTitleForAllUseCase(
+        user_repository=user_repository,
+        title_history_repository=title_history_repository,
+        title_calculation_service=title_calculation_service,
+    )
+
     set_global_average_period_use_case = SetGlobalAveragePeriodUseCase(
         settings_repository=settings_repository,
         admin_service=admin_service,
@@ -174,6 +181,7 @@ def setup_dependencies(bot_instance=None):
         lock_title_use_case=lock_title_use_case,
         unlock_title_use_case=unlock_title_use_case,
         set_full_title_use_case=set_full_title_use_case,
+        set_full_title_for_all_use_case=set_full_title_for_all_use_case,
         set_global_average_period_use_case=set_global_average_period_use_case,
         register_user_use_case=register_user_use_case,
         add_user_use_case=add_user_use_case,  # May be None if bot_instance not available yet
@@ -283,6 +291,8 @@ async def main():
     app.add_handler(CommandHandler("lock_title", handlers["command_handlers"].handle_lock_title))
     app.add_handler(CommandHandler("unlock_title", handlers["command_handlers"].handle_unlock_title))
     app.add_handler(CommandHandler("set_full_title", handlers["command_handlers"].handle_set_full_title))
+    app.add_handler(CommandHandler("set_title", handlers["command_handlers"].handle_set_full_title))  # Alias for set_full_title
+    app.add_handler(CommandHandler("set_full_title_for_all", handlers["command_handlers"].handle_set_full_title_for_all))
     app.add_handler(CommandHandler("set_global_average_period", handlers["command_handlers"].handle_set_global_average_period))
     app.add_handler(CommandHandler("delete_user", handlers["command_handlers"].handle_delete_user))
 
