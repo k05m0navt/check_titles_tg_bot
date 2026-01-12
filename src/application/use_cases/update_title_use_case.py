@@ -66,18 +66,9 @@ class UpdateTitleUseCase:
         if user.title_locked:
             raise TitleLockedError("Title is locked and cannot be updated automatically")
 
-        # Check if full_title is set (required for title calculation)
-        # Verify full_title has content (not empty or whitespace-only)
-        full_title_str = str(user.full_title) if user.full_title else ""
-        if not full_title_str or not full_title_str.strip():
-            # Full title not set - skip title update, log warning
-            logger.warning(
-                "Full title not set for user, skipping title update",
-                telegram_user_id=telegram_user_id,
-                full_title_repr=repr(full_title_str),
-                user_full_title_type=type(user.full_title).__name__ if user.full_title else None
-            )
-            return
+        # Note: The title_calculation_service will handle empty full_title gracefully
+        # by returning an empty Title. No need to check here - if full_title is not set,
+        # the displayed title will just be empty, which is acceptable behavior.
 
         # Check if this is first message today (timezone-aware)
         user_timezone = pytz.timezone(str(user.timezone))
