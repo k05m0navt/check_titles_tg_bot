@@ -2,6 +2,8 @@
 
 from typing import Optional
 from datetime import date
+import structlog
+import pytz
 
 from ...domain.entities.user import User
 from ...domain.value_objects.percentage import Percentage
@@ -12,7 +14,8 @@ from ...domain.repositories.statistics_repository import IStatisticsRepository
 from ...domain.repositories.title_history_repository import ITitleHistoryRepository
 from ...domain.services.title_calculation_service import TitleCalculationService, IActiveUserCounter
 from ...domain.exceptions import TitleLockedError, UserNotFoundError
-import pytz
+
+logger = structlog.get_logger(__name__)
 
 
 class UpdateTitleUseCase:
@@ -64,18 +67,15 @@ class UpdateTitleUseCase:
             raise TitleLockedError("Title is locked and cannot be updated automatically")
 
         # Check if full_title is set (required for title calculation)
-        # Check if value exists and has at least some content (not empty string)
-        full_title_value = user.full_title.value if user.full_title else ""
-        if not full_title_value or full_title_value.strip() == "":
+        # Verify full_title has content (not empty or whitespace-only)
+        full_title_str = str(user.full_title) if user.full_title else ""
+        if not full_title_str or not full_title_str.strip():
             # Full title not set - skip title update, log warning
-            # This is expected behavior - admin must set full_title first
-            import structlog
-            logger = structlog.get_logger(__name__)
             logger.warning(
                 "Full title not set for user, skipping title update",
                 telegram_user_id=telegram_user_id,
-                full_title_from_db=full_title_value,
-                full_title_raw=str(user.full_title) if user.full_title else None
+                full_title_repr=repr(full_title_str),
+                user_full_title_type=type(user.full_title).__name__ if user.full_title else None
             )
             return
 
