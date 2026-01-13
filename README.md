@@ -318,20 +318,27 @@ The bot uses a **full-title based system** where each user has a `full_title` (s
 
 ### Title Calculation Rules
 
-The displayed title is calculated from the `full_title` based on the percentage:
+The displayed title is calculated by incrementing or decrementing the current title based on the percentage. The title is always a substring of the `full_title` and can become empty.
 
-- **0%** → Show first 3 letters from `full_title`
-- **1-5%** → Show first 1 letter from `full_title`
-- **95-99%** → Show (`full_title_letters - 1`) letters from `full_title`
-- **100%** → Show (`full_title_letters - active_user_count`) letters from `full_title`
+- **0%** → Add 3 letters to current title (from `full_title`)
+- **1-5%** → Add 1 letter to current title (from `full_title`)
+- **95-99%** → Remove 1 letter from current title (can become empty)
+- **100%** → Remove N letters from current title, where N = active_user_count (if result is negative, title becomes empty)
 - **Other percentages** → No change (title remains the same)
 
 **Examples:**
 - If `full_title` = "Super Gay Title" (13 letters):
-  - 0% → "Sup" (3 letters)
-  - 1-5% → "S" (1 letter)
-  - 95-99% → "Super Gay Titl" (12 letters)
-  - 100% → Depends on active user count (e.g., if 5 active users → "Super Gay" = 8 letters)
+  - Current title: "Super Gay Tit" (12 letters)
+    - 0% → "Super Gay Title" (12 + 3 = 15, capped at 13 letters = full title)
+    - 1-5% → "Super Gay Titl" (12 + 1 = 13 letters = full title)
+    - 95-99% → "Super Gay Ti" (12 - 1 = 11 letters)
+    - 100% → Depends on active user count (e.g., if 5 active users → 12 - 5 = 7 letters = "Super Ga")
+  
+  - Current title: "Su" (2 letters)
+    - 0% → "Super" (2 + 3 = 5 letters)
+    - 1-5% → "Sup" (2 + 1 = 3 letters)
+    - 95-99% → "S" (2 - 1 = 1 letter)
+    - 100% → "" (empty, if 2 - N ≤ 0)
 
 ### Title Processing
 

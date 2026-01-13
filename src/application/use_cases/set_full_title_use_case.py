@@ -75,12 +75,13 @@ class SetFullTitleUseCase:
         if user.last_percentage:
             from ...domain.value_objects.percentage import Percentage
             displayed_title = await self._title_calculation_service.calculate_displayed_title(
-                full_title_vo, user.last_percentage
+                full_title_vo, user.last_percentage, user.title
             )
             user.update_title(displayed_title)
         else:
-            # If no last_percentage, set displayed title to empty (will be calculated on next message)
-            user.update_title(Title(""))
+            # If no last_percentage, preserve current title (will be calculated on next message)
+            # Don't set to empty to avoid losing the current title
+            pass
 
         # Save user
         await self._user_repository.save(user)

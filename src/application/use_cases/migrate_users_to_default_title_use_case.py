@@ -77,7 +77,7 @@ class MigrateUsersToDefaultTitleUseCase:
             # Recalculate displayed title if user has percentage
             if user.last_percentage is not None:
                 new_displayed_title = await self._title_calculation_service.calculate_displayed_title(
-                    user.full_title, user.last_percentage
+                    user.full_title, user.last_percentage, user.title
                 )
                 user.update_title(new_displayed_title)
             

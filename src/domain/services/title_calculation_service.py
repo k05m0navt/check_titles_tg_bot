@@ -26,52 +26,73 @@ class TitleCalculationService:
         self._active_user_counter = active_user_counter
 
     async def calculate_displayed_title(
-        self, full_title: Title, percentage: Percentage
+        self, full_title: Title, percentage: Percentage, current_title: Title
     ) -> Title:
         """
-        Calculate displayed title from full_title based on percentage rules.
+        Calculate displayed title by incrementing/decrementing from current_title based on percentage rules.
         
         Rules:
-        - 0% → Show first 3 letters from full_title
-        - 1-5% → Show first 1 letter from full_title
-        - 95-99% → Show (full_title_letters - 1) letters from full_title
-        - 100% → Show (full_title_letters - active_user_count) letters from full_title
-        - Other percentages → No change (return current displayed title based on last_percentage)
+        - 0% → Add 3 letters to current title
+        - 1-5% → Add 1 letter to current title
+        - 95-99% → Remove 1 letter from current title (can become empty)
+        - 100% → Remove N letters (active_user_count) from current title (can become empty/negative → empty)
+        - Other percentages → No change (return current title)
+        
+        The result is always a substring of full_title and can be empty.
+        If target letter count exceeds full_title length, result is capped at full_title length.
         
         Args:
             full_title: Full/base title value object (set by admin)
             percentage: Percentage value object (0-100)
+            current_title: Current displayed title (will be incremented/decremented)
             
         Returns:
-            Displayed title value object (substring of full_title)
+            Displayed title value object (substring of full_title, can be empty)
         """
         # If full_title is empty, return empty title
         if not full_title.value or full_title.letter_count() == 0:
             return Title("")
         
         percent_value = int(percentage)
+        current_letter_count = current_title.letter_count()
         full_title_letters = full_title.letter_count()
-
+        
         if percent_value == 0:
-            # Show first 3 letters from full_title
-            return full_title.substring_by_letter_count(3)
+            # Add 3 letters to current title
+            target_count = current_letter_count + 3
+            # Cap at full_title length
+            target_count = min(target_count, full_title_letters)
+            # Can be 0 (empty) if current was empty or negative
+            target_count = max(0, target_count)
+            return full_title.substring_by_letter_count(target_count)
         elif 1 <= percent_value <= 5:
-            # Show first 1 letter from full_title
-            return full_title.substring_by_letter_count(1)
+            # Add 1 letter to current title
+            target_count = current_letter_count + 1
+            # Cap at full_title length
+            target_count = min(target_count, full_title_letters)
+            # Can be 0 (empty) if current was -1
+            target_count = max(0, target_count)
+            return full_title.substring_by_letter_count(target_count)
         elif 95 <= percent_value <= 99:
-            # Show (full_title_letters - 1) letters from full_title
-            target_count = max(0, full_title_letters - 1)
+            # Remove 1 letter from current title (can become empty)
+            target_count = current_letter_count - 1
+            # Can be negative, but we'll treat negative as 0 (empty)
+            target_count = max(0, target_count)
             return full_title.substring_by_letter_count(target_count)
         elif percent_value == 100:
-            # Show (full_title_letters - active_user_count) letters from full_title
-            # CRITICAL: Always query fresh count (never cache)
+            # Remove N letters (active_user_count) from current title
             active_user_count = await self._active_user_counter.count_active_users()
-            target_count = max(0, full_title_letters - active_user_count)
+            target_count = current_letter_count - active_user_count
+            # If negative, make it empty (0)
+            target_count = max(0, target_count)
             return full_title.substring_by_letter_count(target_count)
         else:
-            # No change for other percentages - return empty (or could use last_percentage if tracked)
-            # For now, return empty if percentage doesn't match any rule
-            return Title("")
+            # No change for other percentages - return current title
+            # Ensure current title is still valid substring of full_title
+            if current_letter_count > full_title_letters:
+                # Current title is longer than full_title (shouldn't happen, but handle gracefully)
+                return full_title.substring_by_letter_count(full_title_letters)
+            return current_title
 
     async def calculate_new_title(
         self, current_title: Title, percentage: Percentage

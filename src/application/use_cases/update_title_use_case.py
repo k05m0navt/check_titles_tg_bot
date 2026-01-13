@@ -80,26 +80,17 @@ class UpdateTitleUseCase:
             # Not first message today, skip
             return
 
-        # Calculate displayed title from full_title based on percentage
+        # Calculate displayed title by incrementing/decrementing from current title based on percentage
         displayed_title = await self._title_calculation_service.calculate_displayed_title(
-            user.full_title, percentage
+            user.full_title, percentage, user.title
         )
-
-        # Edge case: if calculated letter count < 0, set to empty string
-        if displayed_title.letter_count() < 0:
-            displayed_title = Title("")
 
         # Save old displayed title for history (not full_title)
         old_title_str = str(user.title)
 
-        # If calculated title is empty but user has a title, preserve the current title
-        # This handles percentages that don't match special rules (docstring says "No change")
-        if displayed_title.letter_count() == 0 and user.title.letter_count() > 0:
-            # Don't update title - preserve current one
-            displayed_title = user.title
-        else:
-            # Update displayed title (full_title remains unchanged)
-            user.update_title(displayed_title)
+        # Update displayed title (full_title remains unchanged)
+        # The calculation service returns a valid substring of full_title (can be empty)
+        user.update_title(displayed_title)
         
         user.last_percentage = percentage
         user.update_last_processed_date(message_date_aware)
