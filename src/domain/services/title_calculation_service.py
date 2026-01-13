@@ -1,8 +1,11 @@
 """Title calculation service based on percentage rules."""
 
 from typing import Protocol
+import structlog
 from ..value_objects.title import Title
 from ..value_objects.percentage import Percentage
+
+logger = structlog.get_logger(__name__)
 
 
 class IActiveUserCounter(Protocol):
@@ -49,13 +52,27 @@ class TitleCalculationService:
         Returns:
             Displayed title value object (substring of full_title, can be empty)
         """
-        # If full_title is empty, return empty title
-        if not full_title.value or full_title.letter_count() == 0:
-            return Title("")
-        
         percent_value = int(percentage)
         current_letter_count = current_title.letter_count()
         full_title_letters = full_title.letter_count()
+        
+        logger.debug(
+            "Calculating displayed title",
+            percent_value=percent_value,
+            current_title=str(current_title),
+            current_letter_count=current_letter_count,
+            full_title=str(full_title),
+            full_title_letters=full_title_letters
+        )
+        
+        # If full_title is empty, preserve current title (can't calculate from empty full_title)
+        if not full_title.value or full_title_letters == 0:
+            logger.warning(
+                "Full title is empty, preserving current title",
+                current_title=str(current_title),
+                current_letter_count=current_letter_count
+            )
+            return current_title
         
         if percent_value == 0:
             # Add 3 letters to current title
@@ -64,7 +81,15 @@ class TitleCalculationService:
             target_count = min(target_count, full_title_letters)
             # Can be 0 (empty) if current was empty or negative
             target_count = max(0, target_count)
-            return full_title.substring_by_letter_count(target_count)
+            result_title = full_title.substring_by_letter_count(target_count)
+            logger.debug(
+                "Percentage 0%: Adding 3 letters",
+                current_letter_count=current_letter_count,
+                target_count=target_count,
+                result_title=str(result_title),
+                result_letter_count=result_title.letter_count()
+            )
+            return result_title
         elif 1 <= percent_value <= 5:
             # Add 1 letter to current title
             target_count = current_letter_count + 1
@@ -72,26 +97,67 @@ class TitleCalculationService:
             target_count = min(target_count, full_title_letters)
             # Can be 0 (empty) if current was -1
             target_count = max(0, target_count)
-            return full_title.substring_by_letter_count(target_count)
+            result_title = full_title.substring_by_letter_count(target_count)
+            logger.debug(
+                "Percentage 1-5%: Adding 1 letter",
+                percent_value=percent_value,
+                current_letter_count=current_letter_count,
+                target_count=target_count,
+                result_title=str(result_title),
+                result_letter_count=result_title.letter_count()
+            )
+            return result_title
         elif 95 <= percent_value <= 99:
             # Remove 1 letter from current title (can become empty)
             target_count = current_letter_count - 1
             # Can be negative, but we'll treat negative as 0 (empty)
             target_count = max(0, target_count)
-            return full_title.substring_by_letter_count(target_count)
+            result_title = full_title.substring_by_letter_count(target_count)
+            logger.debug(
+                "Percentage 95-99%: Removing 1 letter",
+                percent_value=percent_value,
+                current_letter_count=current_letter_count,
+                target_count=target_count,
+                result_title=str(result_title),
+                result_letter_count=result_title.letter_count()
+            )
+            return result_title
         elif percent_value == 100:
             # Remove N letters (active_user_count) from current title
             active_user_count = await self._active_user_counter.count_active_users()
             target_count = current_letter_count - active_user_count
             # If negative, make it empty (0)
             target_count = max(0, target_count)
-            return full_title.substring_by_letter_count(target_count)
+            result_title = full_title.substring_by_letter_count(target_count)
+            logger.debug(
+                "Percentage 100%: Removing N letters",
+                current_letter_count=current_letter_count,
+                active_user_count=active_user_count,
+                target_count=target_count,
+                result_title=str(result_title),
+                result_letter_count=result_title.letter_count()
+            )
+            return result_title
         else:
             # No change for other percentages - return current title
             # Ensure current title is still valid substring of full_title
             if current_letter_count > full_title_letters:
                 # Current title is longer than full_title (shouldn't happen, but handle gracefully)
-                return full_title.substring_by_letter_count(full_title_letters)
+                result_title = full_title.substring_by_letter_count(full_title_letters)
+                logger.warning(
+                    "Current title longer than full_title, capping",
+                    percent_value=percent_value,
+                    current_letter_count=current_letter_count,
+                    full_title_letters=full_title_letters,
+                    result_title=str(result_title)
+                )
+                return result_title
+            logger.debug(
+                "Percentage outside rules: No change",
+                percent_value=percent_value,
+                current_title=str(current_title),
+                current_letter_count=current_letter_count
+            )
             return current_title
 
     async def calculate_new_title(

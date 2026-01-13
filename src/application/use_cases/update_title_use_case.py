@@ -81,12 +81,32 @@ class UpdateTitleUseCase:
             return
 
         # Calculate displayed title by incrementing/decrementing from current title based on percentage
+        logger.debug(
+            "Starting title calculation",
+            telegram_user_id=telegram_user_id,
+            percentage=int(percentage),
+            current_title=str(user.title),
+            current_title_letter_count=user.title.letter_count(),
+            full_title=str(user.full_title),
+            full_title_letter_count=user.full_title.letter_count()
+        )
+        
         displayed_title = await self._title_calculation_service.calculate_displayed_title(
             user.full_title, percentage, user.title
         )
 
         # Save old displayed title for history (not full_title)
         old_title_str = str(user.title)
+
+        logger.debug(
+            "Title calculation completed",
+            telegram_user_id=telegram_user_id,
+            percentage=int(percentage),
+            old_title=old_title_str,
+            old_title_letter_count=user.title.letter_count(),
+            new_title=str(displayed_title),
+            new_title_letter_count=displayed_title.letter_count()
+        )
 
         # Update displayed title (full_title remains unchanged)
         # The calculation service returns a valid substring of full_title (can be empty)
