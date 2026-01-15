@@ -13,15 +13,16 @@ class Title:
     def letter_count(self) -> int:
         """
         Count letters in title (alphanumeric only, excludes spaces and punctuation).
+        Supports Unicode characters (e.g., Cyrillic, Arabic, etc.).
         
         Returns:
             Number of alphanumeric characters in title.
         """
         if not self.value:
             return 0
-        # Remove all non-alphanumeric characters
-        alphanumeric_only = re.sub(r"[^a-zA-Z0-9]", "", self.value)
-        return len(alphanumeric_only)
+        # Count Unicode alphanumeric characters (letters and digits from any language)
+        # Use str.isalnum() which is Unicode-aware
+        return sum(1 for char in self.value if char.isalnum())
 
     def substring_by_letter_count(self, target_letter_count: int) -> "Title":
         """
@@ -59,11 +60,12 @@ class Title:
         
         # Extract substring with exactly target_letter_count letters
         # Strategy: iterate through characters, count alphanumeric, preserve structure
+        # Supports Unicode characters (e.g., Cyrillic, Arabic, etc.)
         result_chars = []
         alpha_count = 0
         
         for char in self.value:
-            if re.match(r"[a-zA-Z0-9]", char):
+            if char.isalnum():  # Unicode-aware alphanumeric check
                 if alpha_count < target_letter_count:
                     result_chars.append(char)
                     alpha_count += 1
@@ -100,8 +102,8 @@ class Title:
         else:
             # Remove letters from end
             # Extract alphanumeric characters, count them, remove from end
-            alphanumeric_only = re.sub(r"[^a-zA-Z0-9]", "", self.value)
-            current_letters = len(alphanumeric_only)
+            # Supports Unicode characters (e.g., Cyrillic, Arabic, etc.)
+            current_letters = self.letter_count()  # Use Unicode-aware letter_count()
             new_count = max(0, current_letters + count)  # count is negative
             
             if new_count == 0:
@@ -115,7 +117,7 @@ class Title:
                 alpha_count = 0
                 
                 for char in self.value:
-                    if re.match(r"[a-zA-Z0-9]", char):
+                    if char.isalnum():  # Unicode-aware alphanumeric check
                         if alpha_count < chars_to_keep:
                             result_chars.append(char)
                             alpha_count += 1

@@ -12,6 +12,7 @@ from ...domain.value_objects.timezone import Timezone
 from ...domain.repositories.user_repository import IUserRepository
 from ...domain.repositories.statistics_repository import IStatisticsRepository
 from ...domain.repositories.title_history_repository import ITitleHistoryRepository
+from ...domain.repositories.settings_repository import ISettingsRepository
 from ...domain.services.title_calculation_service import TitleCalculationService, IActiveUserCounter
 from ...domain.exceptions import TitleLockedError, UserNotFoundError
 
@@ -27,6 +28,7 @@ class UpdateTitleUseCase:
         statistics_repository: IStatisticsRepository,
         title_history_repository: ITitleHistoryRepository,
         title_calculation_service: TitleCalculationService,
+        settings_repository: ISettingsRepository,
     ):
         """
         Initialize update title use case.
@@ -36,11 +38,13 @@ class UpdateTitleUseCase:
             statistics_repository: Statistics repository interface
             title_history_repository: Title history repository interface
             title_calculation_service: Title calculation service
+            settings_repository: Settings repository interface (for default title)
         """
         self._user_repository = user_repository
         self._statistics_repository = statistics_repository
         self._title_history_repository = title_history_repository
         self._title_calculation_service = title_calculation_service
+        self._settings_repository = settings_repository
 
     async def execute(
         self, telegram_user_id: int, percentage: Percentage, message_date: date
@@ -66,9 +70,26 @@ class UpdateTitleUseCase:
         if user.title_locked:
             raise TitleLockedError("Title is locked and cannot be updated automatically")
 
-        # Note: The title_calculation_service will handle empty full_title gracefully
-        # by returning an empty Title. No need to check here - if full_title is not set,
-        # the displayed title will just be empty, which is acceptable behavior.
+        # If full_title is empty, try to use default title from settings
+        # This handles cases where users don't have a full_title set (e.g., from migration)
+        if not user.full_title.value or user.full_title.letter_count() == 0:
+            default_title_str = await self._settings_repository.get_default_title()
+            if default_title_str:
+                default_title = Title(default_title_str)
+                user.set_full_title(default_title)
+                logger.info(
+                    "Set default title for user with empty full_title",
+                    telegram_user_id=telegram_user_id,
+                    default_title=default_title_str
+                )
+            else:
+                # If no default title is set, log warning and skip calculation
+                logger.warning(
+                    "Cannot calculate title: user has no full_title and no default title is set",
+                    telegram_user_id=telegram_user_id,
+                    percentage=int(percentage)
+                )
+                return
 
         # Check if this is first message today (timezone-aware)
         # Convert date to datetime at midnight, localize to user's timezone, then convert back to date

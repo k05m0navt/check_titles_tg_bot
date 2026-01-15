@@ -86,6 +86,7 @@ def setup_dependencies(bot_instance=None):
         statistics_repository=statistics_repository,
         title_history_repository=title_history_repository,
         title_calculation_service=title_calculation_service,
+        settings_repository=settings_repository,
     )
 
     get_leaderboard_use_case = GetLeaderboardUseCase(user_repository=user_repository)
